@@ -49,22 +49,25 @@
 #include "cybsp.h"
 #include "cy_sysint.h"
 #include "cy_tcpwm.h"
+#include "cycfg.h"
 /******************************************************************************
 * Macros
 *******************************************************************************/
+
+#define MY_TCPWM_CNT_NUM   (0UL)
 
 
 /*******************************************************************************
 * Global Variables
 *******************************************************************************/
-int val = 0;
+volatile int val = 0;
 
 /*******************************************************************************
 * Function Prototypes
 *******************************************************************************/
 
 void Interrupt_Handler_Port0 (void){
-    Cy_TCPWM_ClearInterrupt(TCPWM0, 0, CY_TCPWM_INT_ON_TC );
+    Cy_TCPWM_ClearInterrupt(TCPWM0, MY_TCPWM_CNT_NUM, CY_TCPWM_INT_ON_CC );
 
     val = !val;
     Cy_GPIO_Write(CYBSP_LED3_PORT, CYBSP_LED3_PIN, val);
@@ -92,12 +95,12 @@ void Interrupt_Handler_Port0 (void){
 int main(void)
 {
     cy_rslt_t result;
-    #define INTERRUPT_SOURCE_GPIO ioss_interrupts_gpio_0_IRQn
+
     /* Scenario: Vector table is relocated to RAM in __RAM_VECTOR_TABLE[] */
     /* Prototype of ISR function for port interrupt 0 */
     cy_stc_sysint_t intrCfg =
     {
-    /*.intrsrc=*/ INTERRUPT_SOURCE_GPIO, /* Interrupt source is GPIO port 0 interrupt */
+    /*.intrsrc=*/ tcpwm_0_cnt_0_IRQ, /* Interrupt source is PWM counter 0 interrupt */
     /*.intrPriority =*/ 3UL /* Interrupt priority is 3 */
     };
     /* Initialize the interrupt with vector at Interrupt_Handler_Port0() */
@@ -124,16 +127,23 @@ int main(void)
     {
         CY_ASSERT(0);
     }
-
-    Cy_TCPWM_Counter_Init(TCPWM0, 0, &tcpwm_0_cnt_0_config);
-    Cy_TCPWM_Counter_Enable(TCPWM0, 0);
-
+    Cy_TCPWM_PWM_Init(TCPWM0, MY_TCPWM_CNT_NUM, &tcpwm_0_cnt_0_config);
+    Cy_TCPWM_PWM_Enable(TCPWM0, MY_TCPWM_CNT_NUM);
+    Cy_TCPWM_TriggerStart_Single(TCPWM0, MY_TCPWM_CNT_NUM);
     
     /* Enable global interrupts */
     __enable_irq();
-
+    
     for (;;)
     {
+    //     __disable_irq();
+    //     currVal = val;
+    //     __enable_irq();
+    //     if (currVal != lastVal)
+    //     {
+    //         Cy_GPIO_Write(CYBSP_LED3_PORT, CYBSP_LED3_PIN, currVal);
+    //         lastVal = currVal;
+    //     }
     }
 }
 
