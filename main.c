@@ -54,8 +54,7 @@
 * Macros
 *******************************************************************************/
 
-#define MY_TCPWM_CNT_NUM   (0UL)
-
+#define MY_TCPWM_CNT_NUM   (0UL) /* TCPWM counter number */
 
 /*******************************************************************************
 * Global Variables
@@ -66,11 +65,13 @@ volatile int val = 0;
 * Function Prototypes
 *******************************************************************************/
 
-void Interrupt_Handler_Port0 (void){
-    Cy_TCPWM_ClearInterrupt(TCPWM0, MY_TCPWM_CNT_NUM, CY_TCPWM_INT_ON_CC );
+void Interrupt_Handler (void){
 
-    val = !val;
-    Cy_GPIO_Write(CYBSP_LED3_PORT, CYBSP_LED3_PIN, val);
+    Cy_TCPWM_ClearInterrupt(TCPWM0, MY_TCPWM_CNT_NUM, CY_TCPWM_INT_ON_CC ); // Clear the compare interrupt
+
+    val = !val; // Toggle the value of val
+
+    Cy_GPIO_Write(CYBSP_LED3_PORT, CYBSP_LED3_PIN, val); // Write the value of val to the LED
 }
     
 /*******************************************************************************
@@ -96,28 +97,16 @@ int main(void)
 {
     cy_rslt_t result;
 
-    /* Scenario: Vector table is relocated to RAM in __RAM_VECTOR_TABLE[] */
-    /* Prototype of ISR function for port interrupt 0 */
     cy_stc_sysint_t intrCfg =
     {
     /*.intrsrc=*/ tcpwm_0_cnt_0_IRQ, /* Interrupt source is PWM counter 0 interrupt */
     /*.intrPriority =*/ 3UL /* Interrupt priority is 3 */
     };
-    /* Initialize the interrupt with vector at Interrupt_Handler_Port0() */
-    Cy_SysInt_Init(&intrCfg, &Interrupt_Handler_Port0);
-    /* Enable the interrupt */
-    NVIC_EnableIRQ(intrCfg.intrSrc);
-   
+    /* Initialize the interrupt with vector at Interrupt_Handler() */
+
+    Cy_SysInt_Init(&intrCfg, &Interrupt_Handler);
     
-
-#if defined (CY_DEVICE_SECURE) && defined (CY_USING_HAL)
-    cyhal_wdt_t wdt_obj;
-
-    /* Clear watchdog timer so that it doesn't trigger a reset */
-    result = cyhal_wdt_init(&wdt_obj, cyhal_wdt_get_max_timeout_ms());
-    CY_ASSERT(CY_RSLT_SUCCESS == result);
-    cyhal_wdt_free(&wdt_obj);
-#endif
+    NVIC_EnableIRQ(intrCfg.intrSrc);
 
     /* Initialize the device and board peripherals */
     result = cybsp_init();
@@ -127,6 +116,7 @@ int main(void)
     {
         CY_ASSERT(0);
     }
+
     Cy_TCPWM_PWM_Init(TCPWM0, MY_TCPWM_CNT_NUM, &tcpwm_0_cnt_0_config);
     Cy_TCPWM_PWM_Enable(TCPWM0, MY_TCPWM_CNT_NUM);
     Cy_TCPWM_TriggerStart_Single(TCPWM0, MY_TCPWM_CNT_NUM);
@@ -136,14 +126,6 @@ int main(void)
     
     for (;;)
     {
-    //     __disable_irq();
-    //     currVal = val;
-    //     __enable_irq();
-    //     if (currVal != lastVal)
-    //     {
-    //         Cy_GPIO_Write(CYBSP_LED3_PORT, CYBSP_LED3_PIN, currVal);
-    //         lastVal = currVal;
-    //     }
     }
 }
 
